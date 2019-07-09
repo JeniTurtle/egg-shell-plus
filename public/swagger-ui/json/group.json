@@ -1,0 +1,8 @@
+[
+  {
+    "name": "api/v1",
+    "url": "/json/api-docs.json",
+    "swaggerVersion": "2.0",
+    "location": "/json/api-docs.json"
+  }
+]

@@ -1,0 +1,573 @@
+<html><head>
+  <meta charset="UTF-8">
+  <title>Swagger Ui - egg-shell-plus</title>
+  <meta name="description" content="给你的蛋蛋加个壳">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <link rel="stylesheet" href="css/vue.css">
+  <style>
+    .markdown-section a:not(:hover) {
+      text-decoration: none;
+    }
+    .sidebar {
+      padding-top: 20px;
+    }
+    .sidebar h1 {
+      font-weight: normal;
+    }
+    .sidebar blockquote {
+      margin-left: 12px;
+    }
+    section.content {
+      padding-top: 50px;
+    }
+  </style>
+<style type="text/css">.medium-zoom-overlay{position:fixed;top:0;right:0;bottom:0;left:0;opacity:0;transition:opacity .3s;will-change:opacity}.medium-zoom--open .medium-zoom-overlay{cursor:pointer;cursor:zoom-out;opacity:1}.medium-zoom-image{cursor:pointer;cursor:zoom-in;transition:transform .3s}.medium-zoom-image--open{position:relative;cursor:pointer;cursor:zoom-out;will-change:transform}</style></head>
+<body data-page="README.md" class="ready sticky">
+  <nav class="app-nav"></nav><main><button class="sidebar-toggle"><div class="sidebar-toggle-button"><span></span><span></span><span></span></div></button><aside class="sidebar"><h1 class="app-name" style="text-align: left; padding-left: 20px;"><a class="app-name-link" data-nosearch="" href="/egg-shell-decorators/">egg-shell-plus</a></h1><div class="sidebar-nav"><ul><li class=""><a class="section-link" href="#/?id=home">Home</a></li><li class=""><a class="section-link" href="#/?id=quickstart">QuickStart</a></li><li class=""><a class="section-link" href="#/?id=usage">Usage</a></li><li><a class="section-link" href="#/?id=option">Option</a></li><li class="active"><a class="section-link" href="#/?id=member">Member</a></li><ul><li><a class="section-link" href="#/?id=http%e7%9b%b8%e5%85%b3">Http相关</a></li><li><a class="section-link" href="#/?id=%e4%b8%ad%e9%97%b4%e4%bb%b6%e7%9b%b8%e5%85%b3">中间件相关</a></li><li class=""><a class="section-link" href="#/?id=swagger-ui%e7%9b%b8%e5%85%b3">Swagger Ui相关</a></li><li><a class="section-link" href="#/?id=jwt%e7%9b%b8%e5%85%b3">Jwt相关</a></li><li><a class="section-link" href="#/?id=%e5%85%b6%e4%bb%96">其他</a></li></ul></ul></div></aside><section class="content"><article class="markdown-section" id="main"><h1 id="home"><a href="#/?id=home" data-id="home" class="anchor"><span>Home</span></a></h1>
+<blockquote>
+<p>Egg.js 路由装饰器，让你的开发更敏捷~</p></blockquote>
+<p><code>路由解析</code>是 <a target="_blank">egg-shell-plus</a> 最大的特点，使用 Decorator 装饰的路由，则会被自动解析成对应的路由：</p><ul><li>文件路径：<code>app/controller/home.ts</code><ul><li><code>@Get('/detail/:id')</code></li><li><code>@Post()</code></li></ul></li><li>解析路由：<ul><li><code>[get]  全局前缀 + /home + /detail/:id</code></li><li><code>[post] 全局前缀 + /home + /</code></li></ul></li></ul><p>这里的 全局前缀 指的是你在 EggShell 里配置的 <code>prefix</code>，路由解析<code>支持多层级解析噢</code>~</p><blockquote>
+<p>示范代码均采用 TypeScript。（左边的菜单可以滚动的噢👈）</p></blockquote>
+<h1 id="quickstart"><a href="#/?id=quickstart" data-id="quickstart" class="anchor"><span>QuickStart</span></a></h1><p>咱们先快速来一个例子：</p><pre v-pre="" data-lang="typescript"><code class="lang-typescript">
+import { Controller } from 'egg'
+
+const {
+  Get,
+  TagsAll,
+  IgnoreJwt,
+  Prefix,
+  Hidden,
+  ResponseCode,
+  ResponseMessage,
+  ResponseErrorCode,
+  ResponseErrorMessage
+} = require('@/dependency/egg-shell')
+
+@TagsAll('常用装饰器示例')
+// Prefix可以用指定path来替换路径和文件名作为router前缀, 这里就变成了/demo2/test, 而不是/demo/test
+// 但不建议这么做, 为了确保router不会因重名被覆盖, 尽量使用路径和文件名作为router前缀
+@Prefix('/Demo2/Test')
+export default class TestController extends Controller {
+  @IgnoreJwt // 忽略JWT
+  @Get('/api') // 用指定path来替换方法名作为路由, 这里就变成了/demo2/test/api
+  @ResponseCode(100) // 不设置默认为600
+  @ResponseMessage('request success!') // 不设置默认为请求成功
+  public async index(ctx, next) {
+    // 注意, 如果在控制器里做了return之后, 会自动调用一次next方法, 继续执行后面的中间件。
+    // 当然也可以不做return, 自己调用next方法, 或者不调用, 直接返回响应结果
+    await ctx.service.test.sayHi('test api')
+    await next()
+  }
+
+  @IgnoreJwt // 忽略JWT
+  @Get()
+  public async html(ctx) {
+    // 注意, 如果在控制器里做了return之后, 会自动调用一次next方法, 继续执行后面的中间件。
+    // 当然也可以不做return, 自己调用next方法, 或者不调用, 直接返回响应结果
+    ctx.response.type = 'html'
+    ctx.response.body = `
+        &lt;html&gt;
+            &lt;body&gt;
+                &lt;h5&gt;hello world&lt;/h5&gt;
+            &lt;/body&gt;
+        &lt;/html&gt;
+    `
+  }
+
+  @IgnoreJwt // 忽略JWT
+  @Get()
+  @ResponseErrorCode(200) // 不设置默认为601
+  @ResponseErrorMessage('request fail!') // 不设置默认为请求失败
+  public async error() {
+    // 1、捕获到错误异常后, 可以直接抛出, 全局错误方法会捕获并输出
+    // 2、也可以return错误对象, 继续执行后面的中间件
+    // 3、还可以调用ctx.error({ msg: 'fuck!', error: new Error('fuck').data, code: 999 }),
+    // 调用ctx.error就不需要设置@ResponseErrorCode和@ResponseErrorMessage了
+    throw new Error('Fuck the error!')
+  }
+
+  @IgnoreJwt // 忽略JWT
+  @Hidden // 可以用Hidden装饰器在swagger文档隐藏该接口
+  @Get()
+  public async hidden(ctx) {
+    await ctx.service.test.sayHi('hidden api')
+  }
+}
+
+
+      </code></pre><p>以下是 swagger-ui 的路由映射（具体请看<code>Example &gt; Swagger UI</code>）：</p><pre v-pre="" data-lang="typescript"><code class="lang-typescript">
+import { Controller } from 'egg'
+const { Joi } = require('@/dependency/egg-shell')
+
+const {
+  Get,
+  Post,
+  Put,
+  Delete,
+  TagsAll,
+  IgnoreJwtAll,
+  Parameters,
+  Summary,
+  Description,
+  Responses
+} = require('@/dependency/egg-shell')
+
+const joiScheme = Joi.object()
+
+const PathId = {
+  pathParams: Joi.object()
+    .keys({
+      id: Joi.number()
+        .integer()
+        .required()
+        .description('文章ID')
+    })
+    .description('path参数')
+}
+
+const PostCreate = Joi.object()
+  .json()
+  .keys({
+    title: Joi.string()
+      .required()
+      .description('标题'),
+    author: Joi.string()
+      .required()
+      .description('作者'),
+    summary: Joi.string()
+      .required()
+      .description('摘要'),
+    pub_date: Joi.date(),
+    content: Joi.string()
+      .required()
+      .description('内容(html)')
+  })
+  .description('文章内容格式')
+
+const GetArticleValidate = {
+  query: joiScheme.keys({
+    page: Joi.number()
+      .integer()
+      .optional()
+      .default(1)
+      .description('当前页数'),
+    limit: Joi.number()
+      .integer()
+      .optional()
+      .default(10)
+      .description('每页条数')
+  })
+}
+
+const PostArticleValidate = {
+  body: Joi.object().keys({
+    entity: PostCreate.required()
+  })
+}
+
+const PutArticleValidate = {
+  pathParams: PathId.pathParams,
+  ...PostArticleValidate
+}
+
+/**
+ * 可以在效验请求参数的同时,
+ * 自动生成swagger参数文档。
+ */
+@TagsAll('参数效验示例')
+@IgnoreJwtAll
+export default class ValidateController extends Controller {
+  /**
+   * 注意! 注意!
+   * 一、@Parameters注解已经被重写了, 可以在效验参数的同时, 并生成swagger参数文档。
+   * 二、@Responses注解也被重写了, 固定格式为:
+   * @Responses({ statsu: 200, definition: 'User', description: 'fuck you'})
+   * 传多个返回状态, 需要传入一个数组。
+   */
+  @Get('/articles')
+  @Summary('获取文章列表')
+  @Description('从query中效验参数')
+  @Parameters(GetArticleValidate)
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  public async getArticleList(ctx) {
+    return await ctx.service.test.sayHi('get artice list')
+  }
+
+  @Get('/article/:id')
+  @Summary('获取文章列表')
+  @Description('从pathParam中效验参数')
+  @Parameters(PathId)
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  public async getArticle(ctx) {
+    return await ctx.service.test.sayHi('get artice')
+  }
+
+  @Post('/article/:id')
+  @Summary('创建文章内容')
+  @Description('从body中效验参数')
+  @Parameters(PostArticleValidate)
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  public async createArticle(ctx) {
+    return await ctx.service.test.sayHi('post article')
+  }
+
+  @Put('/article/:id')
+  @Summary('修改文章内容')
+  @Description('从body和pathParam中效验参数')
+  @Parameters(PutArticleValidate)
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  public async updateArticle(ctx) {
+    return await ctx.service.test.sayHi('put article')
+  }
+
+  @Delete('/article/:id')
+  @Summary('删除文章内容')
+  @Description('从pathParam中效验参数')
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  @Parameters(PathId)
+  public async deleteArticle(ctx) {
+    return await ctx.service.test.sayHi('delete article')
+  }
+}
+
+
+      </code></pre><p>可带劲来！接下来进入正文~</p><h1 id="usage"><a href="#/?id=usage" data-id="usage" class="anchor"><span>Usage</span></a></h1><pre v-pre="" data-lang="typescript"><code class="lang-typescript">
+
+import { Application } from 'egg'
+
+const { EggShell } = require('@/dependency/egg-shell')
+
+/**
+ *  swagger文档地址: http://host:port/swagger-ui/index.html
+ *
+ *  注: URL首字母全部会被转成小写。
+ *  比如 /Demo/JsonWebToken, 会变成/demo/jsonWebToken
+ */
+export default (app: Application) => {
+
+  EggShell(app, {
+    prefix: '/', // 设置全局前缀
+    autoResponse: true, // 控制器方法return结果后,自动返回JSON格式数据
+      defaultIndex: '/home',  // 设置默认首页, 之所以不设置index.ts作为入口目录, 是怕index控制器下面的action会污染全局地址
+      jwtValidationName: 'routerMiddleware.jwtValidate',  // 配置jwt效验的中间件名, 可以设置@ignoreJwt或@ignoreJwtAll来跳过该效验
+      openValidate: true,  // 是否开启请求参数效验
+      swaggerOpt: {
+          open: true,
+          title: 'Node网关接口文档',
+          version: '1.0.0',
+          // 直接重写了egg-shell的definition创建方法, 格式跟egg-swagger-doc一样, 方便老项目复制。
+          // 注意, definition的路径跟controller的路径做了强绑定, 为了确保名字不会冲突。
+          definitionPath: './app/definition',
+      }
+  })
+}
+
+
+      </code></pre><p>如果不是采用 TypeScript 脚手架，则需在入口注册 Bable 插件使其支持 Decorator：</p><pre v-pre="" data-lang="javascript"><code class="lang-javascript"><span class="token comment">// app.js</span>
+<span class="token string">'use strict'</span><span class="token punctuation">;</span>
+<span class="token function">require</span><span class="token punctuation">(</span><span class="token string">'babel-register'</span><span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  plugins<span class="token punctuation">:</span> <span class="token punctuation">[</span>
+    <span class="token string">'transform-decorators-legacy'</span><span class="token punctuation">,</span>
+  <span class="token punctuation">]</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><h1 id="option"><a href="#/?id=option" data-id="option" class="anchor"><span>Option</span></a></h1><pre v-pre="" data-lang="json"><code class="lang-json">
+import { EggAppConfig, EggAppInfo, PowerPartial } from 'egg';
+
+export default (appInfo: EggAppInfo) => {
+  const config = {} as PowerPartial<EggAppConfig>;
+
+  // egg全局中间件, 注: 所有中间件首字母都是小写哦
+  config.middleware = ['handleError'];
+
+  // 自定义中间件层级从外到里的顺序依次是:
+  // router before -> controller before -> action before -> action after -> controller after -> router after
+  // 测试路径: /demo/weglogic
+
+  // egg-shell对路由中间件做了控制, 这里是执行在控制器之前
+  config.routerBeforeMiddleware = ['routerMiddleware.jwtValidate'];
+  // egg-shell对路由中间件做了控制, 这里是执行在控制器之后
+  config.routerAfterMiddleware = ['routerMiddleware.renderJson'];
+
+  // 中间件配置方式
+  // 中间件多级目录, 需要加一级文件夹名字, 注册的时候也需要带上,
+  // 比如 @Before('RouterMiddleware.TestActAfter')
+  // 或者 config.routerAfterMiddleware = ['routerMiddleware.testActAfter'];
+  config.routerMiddleware = {
+      jwtValidate: { responseErrorStatus: 403 },
+      testCtrlBefore: { test: 'ctrlBefore' },
+      testCtrlAfter: { test: 'ctrlAfter' },
+      testActBefore: { test: 'actBefore' },
+      testActAfter: { test: 'actAfter' }
+  };
+
+  // eggShell config
+  config.eggShellDefaultConf = {
+      defaultIndex: '/home',  // 设置默认首页, 之所以不设置index.ts作为入口目录, 是怕index控制器下面的action会污染全局地址
+      jwtValidationName: 'routerMiddleware.jwtValidate',  // 配置jwt效验的中间件名, 可以设置@ignoreJwt或@ignoreJwtAll来跳过该效验
+      openValidate: true,  // 是否开启请求参数效验
+      swaggerOpt: {
+          open: true,
+          title: 'Node网关接口文档',
+          version: '1.0.0',
+          // 直接重写了egg-shell的definition创建方法, 格式跟egg-swagger-doc一样, 方便老项目复制。
+          // 注意, definition的路径跟controller的路径做了强绑定, 为了确保名字不会冲突。
+          definitionPath: './app/definition',
+          tokenOpt: {
+              tokens: {
+                  manager: '123',
+              },
+          }
+      },
+  };
+
+  return {
+    ...config,
+  };
+};
+
+          </code></pre><h1 id="member"><a href="#/?id=member" data-id="member" class="anchor"><span>Member</span></a></h1><p><code>Method</code>代表装饰的是 Controller 里的函数，而<code>Controller</code>则是装饰控制器的。</p>
+
+      <h2 id="http相关"><a href="#/?id=http%e7%9b%b8%e5%85%b3" data-id="http相关" class="anchor"><span>Http相关</span></a></h2><ul><li>Method<ul><li>✅ <code>Get</code> (string)<ul><li>路由路径</li></ul></li><li>✅ <code>Post</code> (string)<ul><li>路由路径</li></ul></li><li>✅ <code>Put</code> (string)<ul><li>路由路径</li></ul></li><li>✅ <code>Delete</code> (string)<ul><li>路由路径</li></ul></li><li>✅ <code>Patch</code> (string)<ul><li>路由路径</li></ul></li><li>✅ <code>Options</code> (string)<ul><li>路由路径</li></ul></li><li>✅ <code>Head</code> (string)<ul><li>路由路径</li></ul></li><li>🔲 Header</li></ul></li></ul>
+
+      <pre v-pre="" data-lang="typescript"><code class="lang-typescript">
+import { Controller } from 'egg'
+
+const {
+  Get,
+  Post,
+  Put,
+  Delete,
+  TagsAll,
+  IgnoreJwtAll
+} = require('@/dependency/egg-shell')
+
+@TagsAll('简单的Restful示例')
+@IgnoreJwtAll
+export default class RestfulController extends Controller {
+  @Get('/test')
+  public async testGet(ctx) {
+    return await ctx.service.test.sayHi('restful get')
+  }
+  @Post('/test')
+  public async testPost(ctx) {
+    return await ctx.service.test.sayHi('restful post')
+  }
+  @Put('/test')
+  public async testPut(ctx) {
+    return await ctx.service.test.sayHi('restful put')
+  }
+  @Delete('/test')
+  public async testDelete(ctx) {
+    return await ctx.service.test.sayHi('restful delete')
+  }
+}
+
+      </code></pre>
+
+      <h2 id="中间件相关"><a href="#/?id=%e4%b8%ad%e9%97%b4%e4%bb%b6%e7%9b%b8%e5%85%b3" data-id="中间件相关" class="anchor"><span>中间件相关</span></a></h2><ul><li>Method<ul><li>✅ <code>Before</code> (Function[])<ul><li>中间件</li></ul></li><li>✅ <code>After</code>  (Function[])<ul><li>中间件</li></ul></li></ul></li><li>Controller<ul><li>✅ <code>BeforeAll</code> (Function[])<ul><li>中间件</li></ul></li><li>✅ <code>AfterAll</code> (Function[])<ul><li>中间件</li></ul></li></ul></li></ul>
+
+      <pre v-pre="" data-lang="typescript"><code class="lang-typescript">
+import { Controller } from 'egg'
+
+const {
+  Get,
+  TagsAll,
+  IgnoreJwtAll,
+  BeforeAll,
+  AfterAll,
+  Before,
+  After
+} = require('@/dependency/egg-shell')
+
+/**
+ * 路由中间件层级从外到里的顺序依次是:
+ * router before -> controller before -> action before -> action after -> controller after -> router after
+ */
+@TagsAll('路由中间件示例')
+@IgnoreJwtAll // 整个控制器忽略JWT效验
+@BeforeAll('routerMiddleware.testCtrlBefore') // 绑定中间件, 多个中间件可以传数组
+@AfterAll('routerMiddleware.testCtrlAfter') // 绑定中间件, 多个中间件可以传数组
+export default class WeblogicController extends Controller {
+  @Get()
+  @Before('routerMiddleware.testActBefore') // 绑定中间件, 多个中间件可以传数组
+  @After('routerMiddleware.testActAfter') // 绑定中间件, 多个中间件可以传数组
+  public async index(ctx) {
+    console.log('send request ......')
+    // 注意, 如果在控制器里做了return之后, 会自动调用一次next方法, 继续执行后面的中间件。
+    // 当然也可以不做return, 自己调用next方法, 或者不调用。
+    return await ctx.service.test.sayHi('weblogic')
+  }
+}
+
+          </code></pre>
+
+      <h2 id="swagger-ui相关"><a href="#/?id=swagger-ui%e7%9b%b8%e5%85%b3" data-id="swagger-ui相关" class="anchor"><span>Swagger Ui相关</span></a></h2><ul><li>Method<ul><li>✅ <code>Summary</code> (<code>summary</code>: string)<ul><li>对应 swagger-ui 路由的 summary</li></ul></li><li>✅ <code>Description</code> (<code>description</code>: string)<ul><li>对应 swagger-ui 路由的 description</li></ul></li><li>✅ <code>Parameters</code> (<code>parameters</code>: object[])<ul><li>对应 swagger-ui 路由的 parameters, 基于Joi的格式, 方便参数效验</li></ul></li><li>✅ <code>Responses</code> (<code>responses</code>: object)<ul><li>对应 swagger-ui 路由的 responses格式, 后面有介绍</li></ul></li><li>✅ <code>Produces</code> (<code>produces</code>: string[] || string)<ul><li>对应 swagger-ui 路由的 produces，当传入string类型时会自动处理为 [ string ]</li></ul></li><li>✅ <code>Consumes</code> (<code>consumes</code>: string[] || string)<ul><li>对应 swagger-ui 路由的 consumes，当传入string类型时会自动处理为 [ string ]</li></ul></li><li>✅ <code>Hidden</code><ul><li>隐藏该接口的文档</li></ul></li><li>✅ <code>TokenType</code> (<code>type</code>: string)<ul><li>配置该接口的 token 类型（具体查看<code>Example &gt; Swagger Ui &gt; Toekn</code>）</li></ul></li></ul></li><li>Controller<ul><li>✅ <code>TagsAll</code> (<code>descriptions</code>: string, <code>name</code>: string)<ul><li>对应 swagger-ui 路由的 tags，第一个参数为 tag 描述，第二个参数为 tag 的名称，第二个参数如果不填会自动把当前文件的 <code>prefix</code> 作为此参数（建议不填写）。</li></ul></li><li>✅ <code>HiddenAll</code><ul><li>隐藏该控制器所有路由的接口文档</li></ul></li><li>✅ <code>TokenTypeAll</code> (<code>type</code>: string)<ul><li>配置该控制器所有路由的 token 类型（具体查看<code>Example &gt; Swagger Ui &gt; Token</code>）</li></ul></li></ul></li></ul>
+
+      <pre v-pre="" data-lang="typescript"><code class="lang-typescript">
+// 文件路径 /app/controller/demo/validate.ts
+
+import { Controller } from 'egg'
+const { Joi } = require('@/dependency/egg-shell')
+
+const {
+  Get,
+  Post,
+  Put,
+  Delete,
+  TagsAll,
+  IgnoreJwtAll,
+  Parameters,
+  Summary,
+  Description,
+  Responses
+} = require('@/dependency/egg-shell')
+
+const joiScheme = Joi.object()
+
+const PathId = {
+  pathParams: Joi.object()
+    .keys({
+      id: Joi.number()
+        .integer()
+        .required()
+        .description('文章ID')
+    })
+    .description('path参数')
+}
+
+const PostCreate = Joi.object()
+  .json()
+  .keys({
+    title: Joi.string()
+      .required()
+      .description('标题'),
+    author: Joi.string()
+      .required()
+      .description('作者'),
+    summary: Joi.string()
+      .required()
+      .description('摘要'),
+    pub_date: Joi.date(),
+    content: Joi.string()
+      .required()
+      .description('内容(html)')
+  })
+  .description('文章内容格式')
+
+const GetArticleValidate = {
+  query: joiScheme.keys({
+    page: Joi.number()
+      .integer()
+      .optional()
+      .default(1)
+      .description('当前页数'),
+    limit: Joi.number()
+      .integer()
+      .optional()
+      .default(10)
+      .description('每页条数')
+  })
+}
+
+const PostArticleValidate = {
+  body: Joi.object().keys({
+    entity: PostCreate.required()
+  })
+}
+
+const PutArticleValidate = {
+  pathParams: PathId.pathParams,
+  ...PostArticleValidate
+}
+
+/**
+ * 可以在效验请求参数的同时,
+ * 自动生成swagger参数文档。
+ */
+@TagsAll('参数效验示例')
+@IgnoreJwtAll
+export default class ValidateController extends Controller {
+  /**
+   * 注意! 注意!
+   * 一、@Parameters注解已经被重写了, 可以在效验参数的同时, 并生成swagger参数文档。
+   * 二、@Responses注解也被重写了, 固定格式为:
+   * @Responses({ statsu: 200, definition: 'User', description: 'fuck you'})
+   * 传多个返回状态, 需要传入一个数组。
+   */
+  @Get('/articles')
+  @Summary('获取文章列表')
+  @Description('从query中效验参数')
+  @Parameters(GetArticleValidate)
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  public async getArticleList(ctx) {
+    return await ctx.service.test.sayHi('get artice list')
+  }
+
+  @Get('/article/:id')
+  @Summary('获取文章列表')
+  @Description('从pathParam中效验参数')
+  @Parameters(PathId)
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  public async getArticle(ctx) {
+    return await ctx.service.test.sayHi('get artice')
+  }
+
+  @Post('/article/:id')
+  @Summary('创建文章内容')
+  @Description('从body中效验参数')
+  @Parameters(PostArticleValidate)
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  public async createArticle(ctx) {
+    return await ctx.service.test.sayHi('post article')
+  }
+
+  @Put('/article/:id')
+  @Summary('修改文章内容')
+  @Description('从body和pathParam中效验参数')
+  @Parameters(PutArticleValidate)
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  public async updateArticle(ctx) {
+    return await ctx.service.test.sayHi('put article')
+  }
+
+  @Delete('/article/:id')
+  @Summary('删除文章内容')
+  @Description('从pathParam中效验参数')
+  @Responses({ status: 200, definition: 'ValidateTest' })
+  @Parameters(PathId)
+  public async deleteArticle(ctx) {
+    return await ctx.service.test.sayHi('delete article')
+  }
+}
+
+      </code></pre>
+
+      <pre v-pre="" data-lang="typescript"><code class="lang-typescript">
+// 文件路径 app/definition/demo/validate.ts
+
+module.exports = {
+  ValidateTest: {
+    teacher_id: { type: 'integer', require: true, description: '教师ID' },
+    subject_id: { type: 'integer', require: true, description: '科目ID' },
+    teacher_name: { type: 'string', description: '教师姓名' },
+    subject_name: { type: 'string', description: '科目名称，可能为Null' }
+  }
+}
+
+      </code></pre>
+
+      <h2 id="jwt相关"><a href="#/?id=jwt%e7%9b%b8%e5%85%b3" data-id="jwt相关" class="anchor"><span>Jwt相关</span></a></h2><ul><li>Method<ul><li>✅ <code>IgnoreJwt</code><ul><li>忽略该路由的 jwt 校验</li></ul></li></ul></li><li>Controller<ul><li>✅ <code>IgnoreJwtAll</code><ul><li>忽略该控制器所有路由的 jwt 校验</li></ul></li></ul></li></ul><h2 id="其他"><a href="#/?id=%e5%85%b6%e4%bb%96" data-id="其他" class="anchor"><span>其他</span></a></h2><ul><li>✅ <code>EggShell</code>(<code>app</code>: Application, <code>option</code>: object) （非装饰器）<ul><li>核心对象</li></ul></li><li>✅ <code>StatusError</code>(<code>message</code>: string, <code>status</code>?: number) （非装饰器）<ul><li>（非装饰器）message 为错误信息，status 为状态码（默认值为500）</li></ul></li><li>Method<ul><li>✅ <code>Message</code>(<code>message</code>: string)<ul><li>QuickStart 模式返回的信息</li></ul></li></ul></li><li>Controller<ul><li>✅ <code>Prefix</code><ul><li>路由的前缀，用于取缔<code>路由解析</code>给的前缀（prefix）</li></ul></li></ul></li></ul>
+</article></section></main>
+
+<script>
+  window.$docsify = {
+    name: 'egg-shell-decorators 蛋壳',
+    auto2top: true,
+    loadNavbar: true,
+    repo: 'super2god/egg-shell-decorators'
+  }
+</script>
+<script src="js/docsify.min.js"></script>
+<script src="js/prism-json.min.js"></script>
+<script src="js/prism-typescript.min.js"></script>
+<script src="js/zoom-image.min.js"></script>
+<div class="progress" style="opacity: 0; width: 0%;"></div></body></html>

@@ -1,0 +1,11 @@
+logs/
+npm-debug.log
+node_modules/
+.idea/
+run/
+logs/
+.DS_Store
+.vscode
+*.swp
+*.lock
+!.autod.conf.js
