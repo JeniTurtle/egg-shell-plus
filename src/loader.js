@@ -70,12 +70,11 @@ const contractLoader = (app, baseDir, directory, pathPrefix) => {
 		}
 
 		if (stat.isFile() && ['.js', '.ts'].indexOf(path.extname(filepath)) !== -1) {
-			let def = require(filepath.split(/\.(js|ts)/)[0]);
-
+			const def = require(filepath.split(/\.(js|ts)/)[0]);
+			const subPrefix = filepath.split(pathPrefix)[1].replace(/(\.ts)|(\.js)/g, '').substr(1)
 			for (let object in def) {
-				CONTRACT[object] = {
+				CONTRACT[subPrefix.replace(/\//g, '.') + '.' + object] = {
 					path: pathPrefix + filepath.split(pathPrefix)[1],
-					subPrefix: filepath.split(pathPrefix)[1].replace(/(\.ts)|(\.js)/g, '').substr(1),
 					content: def[object],
 				};
 			}
@@ -146,7 +145,7 @@ const buildDefinition = (source) => {
 		}
 
 		target.properties = def;
-		result[source[object].subPrefix.replace(/\//g, '.') + '.' + object] = target;
+		result[object] = target;
 	}
 	return result;
 }

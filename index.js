@@ -4,7 +4,7 @@ require('reflect-metadata');
 const _ = require('lodash');
 const nodePath = require('path');
 const fs = require('fs');
-const parser = require('gitignore-parser');
+const { Container } = require('typedi');
 const { toSwaggerParams, mixedValidate } = require('koa-swagger-joi')
 const { registerRouter } = require('./src/router')
 const { Joi } = require('koa-swagger-joi').default
@@ -81,7 +81,7 @@ const EggShell = (app, options = {}) => {
 		// 获取swagger映射
 		// let loadParameters = null;
 		if (swaggerOpt && swaggerOpt.open) {
-			if (tagsAll) {
+			if (tagsAll && !hiddenAll) {
 				if (!tagsAll.name) tagsAll.name = prefix;
 				swaggerJson.tags.push(tagsAll);
 				validateSwaggerJson.tags.push(tagsAll);
@@ -95,121 +95,147 @@ const EggShell = (app, options = {}) => {
 			if (!reqMethod) {
 				continue
 			}
+			if (path === '/') {
+				path = '';
+			}
 
 			reqMethod.split(',').forEach(requestMethod => {
 				requestMethod = requestMethod.toLowerCase();
 
-			if (swaggerOpt && swaggerOpt.open && !hiddenAll && !hidden) {
-				let finallyPath = prefix + path;
-				if (!path && pName !== 'index') {
-					finallyPath += ("/" + pName)
-				}
-
-				finallyPath = pathCLowercase(replaceColon(finallyPath));
-				let params = typeof parameters === 'function' ? parameters(finallyPath) : parameters;
-				let validateParameters = params instanceof Array ? null : params;
-				let swaggerParameters =  params instanceof Array ? params : toSwaggerParams(params);
-				let swaggerResponses = generateResponse(fullPath, ctrlRootPath, responses, swaggerJson.definitions);
-
-				if (options.jwtValidationName && !ignoreJwtAll && !ignoreJwt) {
-					swaggerParameters.unshift({
-						name: 'Authorization', in: 'header', description: 'Token', type: 'string'
-					});
-				}
-
-				if (swaggerHttpMethod.indexOf(requestMethod) >= 0) {
-					if (!swaggerJson.paths[finallyPath]) {
-						swaggerJson.paths[finallyPath] = {};
-						validateSwaggerJson.paths[finallyPath] = {};
+				if (swaggerOpt && swaggerOpt.open && !hiddenAll && !hidden) {
+					let finallyPath = prefix + path;
+					if (!path && pName !== 'index') {
+						finallyPath += ("/" + pName)
 					}
 
-					const swaggerPaths = {
-						tags: ((tags && !Array.isArray(tags)) ? [tags] : tags) || [prefix],
-						summary: summary || description,
-						description,
-						produces: (produces && !Array.isArray(produces)) ? [produces] : produces,
-						consumes: (consumes && !Array.isArray(consumes)) ? [consumes] : consumes,
-						responses: swaggerResponses
-					};
-					swaggerJson.paths[finallyPath][requestMethod] = { ...swaggerPaths, parameters: swaggerParameters }
-					validateSwaggerJson.paths[finallyPath][requestMethod] = { ...swaggerPaths, parameters: validateParameters }
-				}
-			}
+					finallyPath = pathCLowercase(replaceColon(finallyPath));
+					let params = typeof parameters === 'function' ? parameters(finallyPath) : parameters;
+					let validateParameters = params instanceof Array ? null : params;
+					let swaggerParameters =  params instanceof Array ? params : toSwaggerParams(params);
+					let swaggerResponses = generateResponse(fullPath, ctrlRootPath, responses, swaggerJson.definitions);
 
-			const routerCb = async(ctx, next) => {
-				// 实例化控制器类
-				const instance = new c.constructor(ctx);
-				try {
-					ctx.body = ctx.request ? ctx.request.body : null;
-					ctx.ctrlInfo = {
-						responseCode,
-						responseErrorCode,
-						responseMessage,
-						responseErrorMessage,
-						result: null
-					};
+					if (options.jwtValidationName && !ignoreJwtAll && !ignoreJwt) {
+						swaggerParameters.unshift({
+							name: 'Authorization', in: 'header', description: 'Token', type: 'string'
+						});
+					}
 
-					// 执行控制器中的action方法, 并把返回结果绑定到ctx上
-					const result = await instance[pName](ctx, next);
-
-					// 只有开启自动返回内容选项, 才会自动调用后面的中间件。不然得在控制器里自己调用next方法
-					if (options.autoResponse && !render && !renderController) {
-						ctx.ctrlInfo.result = result;
-
-						// 注意! 如果控制器有return结果, 那么我们这里强制调用一次next方法, 确保中间件继续往下走
-						if (result !== undefined) {
-							await next()
+					if (swaggerHttpMethod.indexOf(requestMethod) >= 0) {
+						if (!swaggerJson.paths[finallyPath]) {
+							swaggerJson.paths[finallyPath] = {};
+							validateSwaggerJson.paths[finallyPath] = {};
 						}
+
+						const swaggerPaths = {
+							tags: ((tags && !Array.isArray(tags)) ? [tags] : tags) || [prefix],
+							summary: summary || description,
+							description,
+							produces: (produces && !Array.isArray(produces)) ? [produces] : produces,
+							consumes: (consumes && !Array.isArray(consumes)) ? [consumes] : consumes,
+							responses: swaggerResponses
+						};
+						swaggerJson.paths[finallyPath][requestMethod] = { ...swaggerPaths, parameters: swaggerParameters }
+						validateSwaggerJson.paths[finallyPath][requestMethod] = { ...swaggerPaths, parameters: validateParameters }
 					}
-				} catch (error) {
-					throw error
-				}
-			};
-
-			const { routerAfterMiddleware: afterList = [], routerBeforeMiddleware: beforeList = [] } = app.config;
-
-			const getMiddlewareList = arr => arr.map(item => {
-				const pathList = pathCLowercase(item.replace('.', '/')).split('/');
-			const fn = deepGet(app.middlewares, pathList);
-			const config = deepGet(app.config, item.split('.')) || deepGet(app.config, pathList)
-			if (fn) {
-				return fn(config, app)
-			}
-		}).filter(item => !!item);
-
-			var ctrlBefores = getMiddlewareList(beforeAll);
-			var ctrlAfters = getMiddlewareList(afterAll);
-			var actBefores = getMiddlewareList(before);
-			var actAfters = getMiddlewareList(after);
-
-			const afterWares = getMiddlewareList(afterList);
-			const beforeWares = getMiddlewareList(beforeList.filter(name => {
-					// 判断该路由是否忽略jwt效验, 如果忽略就跳过
-					return !(((options.jwtValidationName === name || options.jwtValidationName === name.replace(name[0], name[0].toUpperCase()))
-					&& (ignoreJwt || ignoreJwtAll)))
-				}));
-
-			const finalBefores = beforeWares.concat(ctrlBefores).concat(actBefores);
-			const finalAfters = actAfters.concat(ctrlAfters).concat(afterWares);
-
-			const rtFn = ((_prefix, _path, _pName, _reqMethod, _finalBefores, _finalAfters, _routerCb) => () => {
-				const routerPath = pathCLowercase(nodePath.join(_prefix, _path || _pName));
-				let routerIndexPath;
-
-				router[_reqMethod](routerPath, ..._finalBefores, _routerCb, ..._finalAfters);
-
-				if (_pName === "index") {
-					routerIndexPath = pathCLowercase(nodePath.join(_prefix, _path || ""))
-					router[_reqMethod](routerIndexPath, ..._finalBefores, _routerCb, ..._finalAfters);
 				}
 
-				if (options.defaultIndex === routerPath || options.defaultIndex === routerIndexPath) {
-					router.get('/', ..._finalBefores, _routerCb, ..._finalAfters);
-				}
-			})(prefix, path, pName, requestMethod, finalBefores, finalAfters, routerCb)
+				const routerCb = async(ctx, next) => {
+					const initCtx = (target) => {
+						target.ctx = ctx;
+						target.app = ctx.app;
+						target.config = ctx.app.config;
+						target.service = ctx.service;
+					}
+					const injectContext = (obj) => {
+						Object.getOwnPropertyNames(obj).map(prop => {
+							if (!!obj[prop] && typeof obj[prop] === 'object') {
+								const type = obj[prop].constructor;
+								if (Container.has(type) || Container.has(type.name)) {
+									injectContext(obj[prop]);
+									initCtx(obj[prop]);
+								}
+							}
+						});
+					}
+					// 实例化控制器类
+					let instance = new c.constructor(ctx);
+					if (!instance.ctx && !instance.app) {
+						instance = Container.get(c.constructor);
+						injectContext(instance);
+						initCtx(instance);
+					}
+					
+					try {
+						ctx.body = ctx.request ? ctx.request.body : null;
+						ctx.ctrlInfo = {
+							responseCode,
+							responseErrorCode,
+							responseMessage,
+							responseErrorMessage,
+							result: null
+						};
 
-			ctrlFnList.push(rtFn)
-		});
+						// 执行控制器中的action方法, 并把返回结果绑定到ctx上
+						const result = await instance[pName](ctx, next);
+
+						// 只有开启自动返回内容选项, 才会自动调用后面的中间件。不然得在控制器里自己调用next方法
+						if (options.autoResponse && !render && !renderController) {
+							ctx.ctrlInfo.result = result;
+
+							// 注意! 如果控制器有return结果, 那么我们这里强制调用一次next方法, 确保中间件继续往下走
+							if (result !== undefined) {
+								await next()
+							}
+						}
+					} catch (error) {
+						throw error
+					}
+				};
+
+				const { routerAfterMiddleware: afterList = [], routerBeforeMiddleware: beforeList = [] } = app.config;
+
+				const getMiddlewareList = arr => arr.map(item => {
+					const pathList = pathCLowercase(item.replace('.', '/')).split('/');
+				const fn = deepGet(app.middlewares, pathList);
+				const config = deepGet(app.config, item.split('.')) || deepGet(app.config, pathList)
+				if (fn) {
+					return fn(config, app)
+				}
+			}).filter(item => !!item);
+
+				var ctrlBefores = getMiddlewareList(beforeAll);
+				var ctrlAfters = getMiddlewareList(afterAll);
+				var actBefores = getMiddlewareList(before);
+				var actAfters = getMiddlewareList(after);
+
+				const afterWares = getMiddlewareList(afterList);
+				const beforeWares = getMiddlewareList(beforeList.filter(name => {
+						// 判断该路由是否忽略jwt效验, 如果忽略就跳过
+						return !(((options.jwtValidationName === name || options.jwtValidationName === name.replace(name[0], name[0].toUpperCase()))
+						&& (ignoreJwt || ignoreJwtAll)))
+					}));
+
+				const finalBefores = beforeWares.concat(ctrlBefores).concat(actBefores);
+				const finalAfters = actAfters.concat(ctrlAfters).concat(afterWares);
+
+				const rtFn = ((_prefix, _path, _pName, _reqMethod, _finalBefores, _finalAfters, _routerCb) => () => {
+					const routerPath = pathCLowercase(nodePath.join(_prefix, _path || _pName));
+					let routerIndexPath;
+
+					router[_reqMethod](routerPath, ..._finalBefores, _routerCb, ..._finalAfters);
+
+					if (_pName === "index") {
+						routerIndexPath = pathCLowercase(nodePath.join(_prefix, _path || ""))
+						router[_reqMethod](routerIndexPath, ..._finalBefores, _routerCb, ..._finalAfters);
+					}
+
+					if (options.defaultIndex === routerPath || options.defaultIndex === routerIndexPath) {
+						router.get('/', ..._finalBefores, _routerCb, ..._finalAfters);
+					}
+				})(prefix, path, pName, requestMethod, finalBefores, finalAfters, routerCb)
+
+				ctrlFnList.push(rtFn)
+			});
 		}
 	}
 
