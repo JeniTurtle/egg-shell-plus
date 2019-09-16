@@ -113,7 +113,11 @@ const EggShell = (app, options = {}) => {
 					let validateParameters = params instanceof Array ? null : params;
 					let swaggerParameters =  params instanceof Array ? params : toSwaggerParams(params);
 					let swaggerResponses = generateResponse(fullPath, ctrlRootPath, responses, swaggerJson.definitions);
-
+					
+					if (validateParameters && validateParameters.headers) {
+						// 不对header参数做效验
+						delete validateParameters.headers;
+					}
 					if (options.jwtValidationName && !ignoreJwtAll && !ignoreJwt) {
 						swaggerParameters.unshift({
 							name: 'Authorization', in: 'header', description: 'Token', type: 'string'
@@ -193,15 +197,27 @@ const EggShell = (app, options = {}) => {
 				};
 
 				const { routerAfterMiddleware: afterList = [], routerBeforeMiddleware: beforeList = [] } = app.config;
-
 				const getMiddlewareList = arr => arr.map(item => {
-					const pathList = pathCLowercase(item.replace('.', '/')).split('/');
-				const fn = deepGet(app.middlewares, pathList);
-				const config = deepGet(app.config, item.split('.')) || deepGet(app.config, pathList)
-				if (fn) {
-					return fn(config, app)
-				}
-			}).filter(item => !!item);
+					let middlewarePath = item;
+					if (typeof item === 'function') {
+						Object.getOwnPropertySymbols(item).forEach(key => {
+							if (typeof item[key] !== 'string') {
+								return;
+							}
+							let temp = item[key].replace(/\\/g, '/');
+							temp = temp.split('/middleware/');
+							if (temp.length === 2) {
+								middlewarePath = temp[1].substr(0, temp[1].lastIndexOf('.')).replace('/', '.');
+							}
+						})
+					}
+					const pathList = pathCLowercase(middlewarePath.replace('.', '/')).split('/');
+					const fn = deepGet(app.middlewares, pathList);
+					const config = deepGet(app.config, middlewarePath.split('.')) || deepGet(app.config, pathList)
+					if (fn) {
+						return fn(config, app)
+					}
+				}).filter(item => !!item);
 
 				var ctrlBefores = getMiddlewareList(beforeAll);
 				var ctrlAfters = getMiddlewareList(afterAll);

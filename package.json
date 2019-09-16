@@ -1,6 +1,6 @@
 {
   "name": "egg-shell-plus",
-  "version": "1.2.3",
+  "version": "1.2.5",
   "description": "",
   "egg": {
     "typescript": true,
