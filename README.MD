@@ -9,3 +9,5 @@
 
 > swagger文档
 - 启动server后, 打开网址: http://127.0.0.1:7021/swagger-ui/index.html
+
+### 具体使用，参考account-platform项目
