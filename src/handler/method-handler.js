@@ -170,7 +170,7 @@ class MethodHandler {
 	}
 
 	render () {
-		return this[createSingleDecorator](RENDER_METADATA)(true);
+		return this[createSingleDecorator](RENDER_METADATA);
 	}
 
 	[createMappingDecorator] (method) {
