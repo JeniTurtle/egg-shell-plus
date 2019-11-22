@@ -53,7 +53,6 @@ export const Head: MapDecorator
 
 export const Before: SingleDecorator
 export const After: SingleDecorator
-export const Message: SingleDecorator
 export const IgnoreJwt: Decorator
 export const ResponseMessage: SingleDecorator
 export const ResponseErrorMessage: SingleDecorator
@@ -76,6 +75,7 @@ export const BeforeAll: Function
 export const AfterAll: Function
 export const Prefix: Function
 export const TagsAll: Function
+export const Controller: Function
 export const HiddenAll: Function
 export const TokenTypeAll: Function
 export const RenderController: Function

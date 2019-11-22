@@ -64,8 +64,8 @@ const EggShell = (app, options = {}) => {
 		let { ignoreJwtAll, prefix, tagsAll, beforeAll, afterAll, hiddenAll, renderController } = ctHandler.getMetada(c.constructor);
 		// 获取类自定义的属性名和方法名
 		const propertyNames = _.filter(Object.getOwnPropertyNames(c), pName => {
-				return pName !== 'constructor' && pName !== 'pathName' && pName !== 'fullPath';
-	});
+			return pName !== 'constructor' && pName !== 'pathName' && pName !== 'fullPath';
+		});
 
 		// 解析前缀
 		const fullPath = c.fullPath.
@@ -321,6 +321,7 @@ module.exports = {
 	AfterAll: ctHandler.afterAll(),
 	Prefix: ctHandler.prefix(),
 	TagsAll: ctHandler.tagsAll(),
+	Controller: ctHandler.tagsAll(),
 	HiddenAll: ctHandler.hiddenAll(),
 	TokenTypeAll: ctHandler.tokenTypeAll(),
 	RenderController: ctHandler.renderController()
