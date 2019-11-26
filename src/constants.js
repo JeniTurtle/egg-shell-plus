@@ -28,5 +28,8 @@ module.exports = {
   CONTROLLER_TAGS_ALL_METADATA: 'controller_tags_all',
   CONTROLLER_HIDDEN_METADATA: 'controller_hidden',
   CONTROLLER_TOKEN_TYPE_ALL_METADATA: 'controller_token_type_all',
-  CONTROLLER_RENDER_METADATA: 'controller_render'
+  CONTROLLER_RENDER_METADATA: 'controller_render',
+
+  HUMP_NAMING_URL_FORMAT: 'hump',
+  UNDERLINE_NAMING_URL_FORMAT: 'underline',
 };

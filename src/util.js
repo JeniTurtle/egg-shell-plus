@@ -1,5 +1,5 @@
 const fs = require('fs');
-const path = require('path');
+const { HUMP_NAMING_URL_FORMAT, UNDERLINE_NAMING_URL_FORMAT } = require('./constants');
 
 const deepGet = (object, path, defaultValue) => {
 	return (!Array.isArray(path) ? path.replace(/\[/g, '.').replace(/\]/g, '').split('.') : path)
@@ -19,6 +19,41 @@ const pathCLowercase = (path) => {
 		}
 	}).join('\/')
 };
+
+// 下划线转换驼峰
+const toHump = (name) => {
+	return name.split('\/').map(v => {
+		if (!v || v.indexOf(':') === 0 || /^\{.*\}$/.test(v)) {
+			return v;
+		}
+		v = cLowercase(v);
+		return v.replace(/\_(\w)/g, (_all, letter) => {
+			return letter.toUpperCase();
+		})
+	}).join('\/')
+}
+// 驼峰转换下划线
+const toLine = (name) => {
+	return name.split('\/').map(v => {
+		if (!v || v.indexOf(':') === 0 || /^\{.*\}$/.test(v)) {
+			return v;
+		}
+		v = cLowercase(v);
+		return v.replace(/([A-Z])/g,"_$1").toLowerCase();
+	}).join('\/')
+}
+
+const urlFormat = (type, url) => {
+	url = url.replace(/\\/g, '/');
+	switch (type) {
+		case HUMP_NAMING_URL_FORMAT:
+			return toHump(url);
+		case UNDERLINE_NAMING_URL_FORMAT:
+			return toLine(url);
+		default:
+			return url;
+	}
+}
 
 // 递归创建目录 同步方法
 const mkdirsSync = (dirname) => {
@@ -53,6 +88,7 @@ const deepClone = (origin, target) => {
 };
 
 module.exports = {
+	urlFormat,
 	deepGet,
 	cLowercase,
 	pathCLowercase,

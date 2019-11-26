@@ -13,8 +13,9 @@ const CUSTOM_MIDDLEWARE_NAME = 'customMiddlewares';
 const StatusError = require('./src/exception/status-error');
 const ControllerHandler = require('./src/handler/controller-handler');
 const MethodHandler = require('./src/handler/method-handler');
-const { deepGet, pathCLowercase, deepClone } = require('./src/util')
-const { generateResponse, getDefinitions } = require('./src/loader')
+const { deepGet, urlFormat, deepClone, pathCLowercase } = require('./src/util');
+const { generateResponse, getDefinitions } = require('./src/loader');
+const { UNDERLINE_NAMING_URL_FORMAT } = require('./src/constants');
 
 const ctMap = new Map();
 const ctHandler = new ControllerHandler();
@@ -24,6 +25,7 @@ const swaggerHttpMethod = [ 'get', 'post', 'put', 'delete', 'patch' ];
 const EggShell = (app, options = {}) => {
 	const { router } = app;
 	const ctrlFnList = [];
+	const urlNamingStrategy = options.urlNamingStrategy;
 
 	// 设置全局路由前缀
 	if (options.prefix) router.prefix(options.prefix);
@@ -62,6 +64,9 @@ const EggShell = (app, options = {}) => {
 	for (const c of ctMap.values()) {
 		// 获取控制器元数据
 		let { ignoreJwtAll, prefix, tagsAll, beforeAll, afterAll, hiddenAll, renderController } = ctHandler.getMetada(c.constructor);
+		if (renderController) {
+			ignoreJwtAll = true;
+		}
 		// 获取类自定义的属性名和方法名
 		const propertyNames = _.filter(Object.getOwnPropertyNames(c), pName => {
 			return pName !== 'constructor' && pName !== 'pathName' && pName !== 'fullPath';
@@ -75,7 +80,7 @@ const EggShell = (app, options = {}) => {
 		const rootPath = 'controller/';
 		const ctrlRootPath = fullPath.substring(fullPath.indexOf(rootPath) + rootPath.length);
 		// 如果这个控制器没有通过装饰器设置prefix,就按照文件路径作为前缀
-		prefix = prefix || ctrlRootPath;
+		prefix = urlFormat(urlNamingStrategy, prefix || ctrlRootPath);
 		prefix = prefix.startsWith('/') ? prefix : '/' + prefix;
 
 		// 获取swagger映射
@@ -91,6 +96,10 @@ const EggShell = (app, options = {}) => {
 		for (const pName of propertyNames) {
 			// 解析函数元数据
 			let {reqMethod, path = "", before, after, responseMessage, responseErrorMessage, responseCode, responseErrorCode, ignoreJwt, tags, summary, description, parameters, responses, produces, consumes, hidden, render} = methodHandler.getMetada(c[pName]);
+			if (render) {
+				hidden = true;
+				ignoreJwt = true;
+			}
 
 			if (!reqMethod) {
 				continue
@@ -108,7 +117,7 @@ const EggShell = (app, options = {}) => {
 						finallyPath += ("/" + pName)
 					}
 
-					finallyPath = pathCLowercase(replaceColon(finallyPath));
+					finallyPath = urlFormat(urlNamingStrategy, replaceColon(finallyPath));
 					let params = typeof parameters === 'function' ? parameters(finallyPath) : parameters;
 					let validateParameters = params instanceof Array ? null : params;
 					let swaggerParameters =  params instanceof Array ? params : toSwaggerParams(params);
@@ -178,12 +187,14 @@ const EggShell = (app, options = {}) => {
 							responseErrorMessage,
 							result: null
 						};
-
 						// 执行控制器中的action方法, 并把返回结果绑定到ctx上
 						const result = await instance[pName](ctx, next);
-
+						if (render) {
+							ctx.set('Content-Type', 'text/html; charset=utf-8');
+							return await ctx.render(render, result);
+						}
 						// 只有开启自动返回内容选项, 才会自动调用后面的中间件。不然得在控制器里自己调用next方法
-						if (options.autoResponse && !render && !renderController) {
+						if (options.autoResponse) {
 							ctx.ctrlInfo.result = result;
 
 							// 注意! 如果控制器有return结果, 那么我们这里强制调用一次next方法, 确保中间件继续往下走
@@ -235,13 +246,13 @@ const EggShell = (app, options = {}) => {
 				const finalAfters = actAfters.concat(ctrlAfters).concat(afterWares);
 
 				const rtFn = ((_prefix, _path, _pName, _reqMethod, _finalBefores, _finalAfters, _routerCb) => () => {
-					const routerPath = pathCLowercase(nodePath.join(_prefix, _path || _pName));
+					const routerPath = urlFormat(urlNamingStrategy, nodePath.join(_prefix, _path || _pName));
 					let routerIndexPath;
 
 					router[_reqMethod](routerPath, ..._finalBefores, _routerCb, ..._finalAfters);
 
 					if (_pName === "index") {
-						routerIndexPath = pathCLowercase(nodePath.join(_prefix, _path || ""))
+						routerIndexPath = urlFormat(urlNamingStrategy, nodePath.join(_prefix, _path || ""))
 						router[_reqMethod](routerIndexPath, ..._finalBefores, _routerCb, ..._finalAfters);
 					}
 
@@ -324,5 +335,5 @@ module.exports = {
 	Controller: ctHandler.tagsAll(),
 	HiddenAll: ctHandler.hiddenAll(),
 	TokenTypeAll: ctHandler.tokenTypeAll(),
-	RenderController: ctHandler.renderController()
+	View: ctHandler.renderController()
 };
