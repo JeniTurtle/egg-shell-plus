@@ -3,6 +3,7 @@
 require('reflect-metadata');
 const _ = require('lodash');
 const nodePath = require('path');
+const uuidV1 = require('uuid/v1');
 const fs = require('fs');
 const { Container } = require('typedi');
 const { toSwaggerParams, mixedValidate } = require('koa-swagger-joi')
@@ -15,7 +16,6 @@ const ControllerHandler = require('./src/handler/controller-handler');
 const MethodHandler = require('./src/handler/method-handler');
 const { deepGet, urlFormat, deepClone, pathCLowercase } = require('./src/util');
 const { generateResponse, getDefinitions } = require('./src/loader');
-const { UNDERLINE_NAMING_URL_FORMAT } = require('./src/constants');
 
 const ctMap = new Map();
 const ctHandler = new ControllerHandler();
@@ -153,19 +153,21 @@ const EggShell = (app, options = {}) => {
 				}
 
 				const routerCb = async(ctx, next) => {
+					const contextId = uuidV1();
 					const initCtx = (target) => {
 						target.ctx = ctx;
 						target.app = ctx.app;
 						target.config = ctx.app.config;
 						target.service = ctx.service;
+						target.contextId = contextId;
 					}
 					const injectContext = (obj) => {
 						Object.getOwnPropertyNames(obj).map(prop => {
 							if (!!obj[prop] && typeof obj[prop] === 'object') {
 								const type = obj[prop].constructor;
-								if (Container.has(type) || Container.has(type.name)) {
-									injectContext(obj[prop]);
+								if (obj[prop].contextId !== contextId && (Container.has(type) || Container.has(type.name))) {
 									initCtx(obj[prop]);
+									injectContext(obj[prop]);
 								}
 							}
 						});
