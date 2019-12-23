@@ -5,7 +5,7 @@ const _ = require('lodash');
 const nodePath = require('path');
 const uuidV1 = require('uuid/v1');
 const fs = require('fs');
-const { Container } = require('typedi');
+const { Container, ContainerInstance } = require('typedi');
 const { toSwaggerParams, mixedValidate } = require('koa-swagger-joi')
 const { registerRouter } = require('./src/router')
 const { Joi } = require('koa-swagger-joi').default
@@ -17,10 +17,26 @@ const MethodHandler = require('./src/handler/method-handler');
 const { deepGet, urlFormat, deepClone, pathCLowercase } = require('./src/util');
 const { generateResponse, getDefinitions } = require('./src/loader');
 
+const contextIdProp = Symbol('controllerContextId');
 const ctMap = new Map();
 const ctHandler = new ControllerHandler();
 const methodHandler = new MethodHandler(ctMap);
 const swaggerHttpMethod = [ 'get', 'post', 'put', 'delete', 'patch' ];
+
+Container.of = function (instanceId) {
+	if (instanceId === undefined)
+			return this.globalInstance;
+	var container = this.instances.find(function (instance) { return instance.id === instanceId; });
+	if (!container) {
+			container = new ContainerInstance(instanceId);
+			container.services.push(...this.globalInstance.services.map(s => ({
+					...s,
+					value: s.global ? s.value : undefined
+			})));
+			this.instances.push(container);
+	}
+	return container;
+};
 
 const EggShell = (app, options = {}) => {
 	const { router } = app;
@@ -153,19 +169,19 @@ const EggShell = (app, options = {}) => {
 				}
 
 				const routerCb = async(ctx, next) => {
-					const contextId = uuidV1();
+					ctx[contextIdProp] = uuidV1();
 					const initCtx = (target) => {
 						target.ctx = ctx;
 						target.app = ctx.app;
 						target.config = ctx.app.config;
 						target.service = ctx.service;
-						target.contextId = contextId;
+						target[contextIdProp] = ctx[contextIdProp];
 					}
 					const injectContext = (obj) => {
 						Object.getOwnPropertyNames(obj).map(prop => {
 							if (!!obj[prop] && typeof obj[prop] === 'object') {
 								const type = obj[prop].constructor;
-								if (obj[prop].contextId !== contextId && (Container.has(type) || Container.has(type.name))) {
+								if (obj[prop][contextIdProp] !== ctx[contextIdProp] && (Container.has(type) || Container.has(type.name))) {
 									initCtx(obj[prop]);
 									injectContext(obj[prop]);
 								}
@@ -175,9 +191,9 @@ const EggShell = (app, options = {}) => {
 					// 实例化控制器类
 					let instance = new c.constructor(ctx);
 					if (!instance.ctx && !instance.app) {
-						instance = Container.get(c.constructor);
-						injectContext(instance);
+						instance = Container.of(ctx[contextIdProp]).get(c.constructor);
 						initCtx(instance);
+						injectContext(instance);
 					}
 					
 					try {
@@ -204,6 +220,7 @@ const EggShell = (app, options = {}) => {
 								await next()
 							}
 						}
+						Container.of(ctx[contextIdProp]).reset(c.constructor);
 					} catch (error) {
 						throw error
 					}
