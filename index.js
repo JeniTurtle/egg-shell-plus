@@ -220,7 +220,7 @@ const EggShell = (app, options = {}) => {
 								await next()
 							}
 						}
-						Container.of(ctx[contextIdProp]).reset(c.constructor);
+						Container.reset(ctx[contextIdProp]);
 					} catch (error) {
 						throw error
 					}
