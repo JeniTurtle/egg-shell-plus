@@ -213,7 +213,7 @@ const EggShell = (app, options = {}) => {
 						}
 						// 只有开启自动返回内容选项, 才会自动调用后面的中间件。不然得在控制器里自己调用next方法
 						if (options.autoResponse) {
-							ctx.ctrlInfo.result = result;
+							ctx.state.ctrlInfo.result = result;
 
 							// 注意! 如果控制器有return结果, 那么我们这里强制调用一次next方法, 确保中间件继续往下走
 							if (result !== undefined) {
