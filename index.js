@@ -198,7 +198,7 @@ const EggShell = (app, options = {}) => {
 					
 					try {
 						ctx.body = ctx.request ? ctx.request.body : null;
-						ctx.ctrlInfo = {
+						ctx.state.ctrlInfo = {
 							responseCode,
 							responseErrorCode,
 							responseMessage,
