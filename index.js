@@ -39,6 +39,7 @@ Container.of = function (instanceId) {
 };
 
 const EggShell = (app, options = {}) => {
+  const routerInfoList = [];
 	const { router } = app;
 	const ctrlFnList = [];
 	const urlNamingStrategy = options.urlNamingStrategy;
@@ -254,18 +255,23 @@ const EggShell = (app, options = {}) => {
 				var actBefores = getMiddlewareList(before);
 				var actAfters = getMiddlewareList(after);
 
+        const routerPath = urlFormat(urlNamingStrategy, nodePath.join(prefix, path || pName));
 				const afterWares = getMiddlewareList(afterList);
 				const beforeWares = getMiddlewareList(beforeList.filter(name => {
-						// 判断该路由是否忽略jwt效验, 如果忽略就跳过
-						return !(((options.jwtValidationName === name || options.jwtValidationName === name.replace(name[0], name[0].toUpperCase()))
-						&& (ignoreJwt || ignoreJwtAll)))
-					}));
+          // 判断该路由是否忽略jwt效验, 如果忽略就跳过
+          const ret = !(((options.jwtValidationName === name || options.jwtValidationName === name.replace(name[0], name[0].toUpperCase()))
+          && (ignoreJwt || ignoreJwtAll)));
+          routerInfoList.push({
+            method: requestMethod,
+            path: routerPath,
+            verifyJwt: ret,
+          });
+          return ret;
+        }));
 
 				const finalBefores = beforeWares.concat(ctrlBefores).concat(actBefores);
 				const finalAfters = actAfters.concat(ctrlAfters).concat(afterWares);
-
-				const rtFn = ((_prefix, _path, _pName, _reqMethod, _finalBefores, _finalAfters, _routerCb) => () => {
-					const routerPath = urlFormat(urlNamingStrategy, nodePath.join(_prefix, _path || _pName));
+				const rtFn = ((routerPath, _prefix, _path, _pName, _reqMethod, _finalBefores, _finalAfters, _routerCb) => () => {
 					let routerIndexPath;
 
 					router[_reqMethod](routerPath, ..._finalBefores, _routerCb, ..._finalAfters);
@@ -278,7 +284,7 @@ const EggShell = (app, options = {}) => {
 					if (options.defaultIndex === routerPath || options.defaultIndex === routerIndexPath) {
 						router.get('/', ..._finalBefores, _routerCb, ..._finalAfters);
 					}
-				})(prefix, path, pName, requestMethod, finalBefores, finalAfters, routerCb)
+				})(routerPath, prefix, path, pName, requestMethod, finalBefores, finalAfters, routerCb)
 
 				ctrlFnList.push(rtFn)
 			});
@@ -300,7 +306,9 @@ const EggShell = (app, options = {}) => {
 		}
 	}
 
-	return app
+	return {
+    routerInfoList,
+  };
 };
 
 const paramsRegex = /:[\w-]*/g;
